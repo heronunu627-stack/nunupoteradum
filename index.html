@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>nunu 관리자 센터 - 계정 및 회원 관리</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800&family=Outfit:wght@600;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="admin.css?v=20261010_2150">
+</head>
+<body>
+  <!-- 관리자 상단 헤더 -->
+  <header class="admin-header">
+    <div class="header-left">
+      <div class="admin-logo">
+        <span class="logo-text">nunu</span>
+        <span class="admin-badge">ADMIN CONSOLE</span>
+      </div>
+      <button type="button" id="btnConfigApiServer" class="system-status-btn" title="연동 서버 URL 설정">
+        <span class="status-dot"></span> <span id="apiServerLabel">연동 서버: http://localhost:8080</span>
+      </button>
+    </div>
+    <div class="header-right">
+      <button type="button" id="btnEmergencyStop" class="btn-emergency-stop" onclick="window.toggleEmergencyStopAdmin ? window.toggleEmergencyStopAdmin() : null" title="누누포털 및 누누스카이 앱 전체 즉시 비상정지">
+        <i class="fa-solid fa-triangle-exclamation"></i> <span>비상정지</span>
+      </button>
+      <a href="https://bookwave-server.onrender.com/admin" target="_blank" rel="noopener noreferrer" class="btn-bookwave-admin" title="북웨이브 관리자 센터 새 탭 열기">
+        <i class="fa-solid fa-book-bookmark"></i> 북웨이브 관리자
+      </a>
+      <button id="refreshBtn" class="btn-outline" title="데이터 새로고침"><i class="fa-solid fa-arrows-rotate"></i> 새로고침</button>
+      <a href="http://localhost:8080/" id="btnOpenUserPortal" target="_blank" rel="noopener noreferrer" class="btn-portal-back" title="연동된 nunu 사용자 포털 새 창 열기"><i class="fa-solid fa-arrow-up-right-from-square"></i> nunu 사용자 포털 열기</a>
+    </div>
+  </header>
+
+  <div class="admin-container">
+    <!-- 상단 대시보드 메트릭 카드 -->
+    <section class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-icon" style="background: #e0e7ff; color: #4f46e5;">
+          <i class="fa-solid fa-users"></i>
+        </div>
+        <div class="metric-info">
+          <span class="metric-label">총 등록 회원</span>
+          <h2 class="metric-value" id="totalUsersCount">0명</h2>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon" style="background: #dcfce7; color: #10b981;">
+          <i class="fa-solid fa-user-clock"></i>
+        </div>
+        <div class="metric-info">
+          <span class="metric-label">최근 가입자</span>
+          <h2 class="metric-value" id="recentUserText">-</h2>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon" style="background: #fef3c7; color: #f59e0b;">
+          <i class="fa-solid fa-key"></i>
+        </div>
+        <div class="metric-info">
+          <span class="metric-label">비밀번호 관리 모드</span>
+          <h2 class="metric-value" id="pwModeText">전체 확인 가능</h2>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon" style="background: #ede9fe; color: #7c3aed;">
+          <i class="fa-solid fa-crown"></i>
+        </div>
+        <div class="metric-info">
+          <span class="metric-label">PRO 승인 계정</span>
+          <h2 class="metric-value" id="proUsersCount">0명</h2>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon" style="background: #fef3c7; color: #d97706;">
+          <i class="fa-solid fa-coins"></i>
+        </div>
+        <div class="metric-info">
+          <span class="metric-label">매일 기본 충전 한도</span>
+          <h2 class="metric-value" id="dailyLimitMetricText">20개</h2>
+        </div>
+      </div>
+    </section>
+
+    <!-- 시스템 긴급 비상정지 제어 카드 -->
+    <section class="admin-content-card emergency-control-card" id="emergencyControlCard">
+      <div class="emergency-bar-inner">
+        <div class="emergency-left">
+          <div class="emergency-icon-pulse">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+              <h4 style="margin:0; font-size:16px; font-weight:800; color:#dc2626;">전체 시스템 긴급 비상정지(Kill-Switch) 제어</h4>
+              <span id="emergencyStatusBadge" class="emergency-badge normal"><i class="fa-solid fa-circle-check"></i> 정상 운영 중</span>
+            </div>
+            <p style="margin:0; font-size:13px; color:#64748b; line-height:1.5;">
+              비상정지 버튼을 누르면 <strong>누누포털 웹과 누누스카이 앱</strong> 둘 다 화면 전체에 사이렌이 돌면서 <strong>'관리자로 인해 종료되었습니다.'</strong> 긴급 차단 화면이 즉시 발동됩니다.
+            </p>
+          </div>
+        </div>
+        <div class="emergency-right">
+          <button type="button" id="btnTriggerEmergencyStop" class="btn-emergency-trigger" onclick="window.triggerEmergencyStopAdmin ? window.triggerEmergencyStopAdmin(true) : null">
+            <i class="fa-solid fa-triangle-exclamation"></i> <span>시스템 비상정지 발동</span>
+          </button>
+          <button type="button" id="btnResetEmergencyStop" class="btn-emergency-reset" onclick="window.triggerEmergencyStopAdmin ? window.triggerEmergencyStopAdmin(false) : null" style="display: none;">
+            <i class="fa-solid fa-rotate-left"></i> <span>정상 서비스로 복구하기</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI 크레딧 정책 및 전체 회원 일괄 조절 카드 -->
+    <section class="admin-content-card credit-settings-bar">
+      <div class="credit-bar-left">
+        <div class="credit-bar-icon"><i class="fa-solid fa-coins"></i></div>
+        <div>
+          <h4>AI 크레딧 시스템 정책 및 일괄 관리</h4>
+          <p>
+            <strong>차감 기준:</strong> 언어: <strong>-1 크레딧</strong> · 그림: <strong>-2 크레딧</strong> (나노바나나) · 음악: <strong>-2 크레딧</strong> (재미나이 생성 음악) · 동영상: <strong>-10 크레딧</strong> (Veo)<br>
+            모든 회원이 매일 자정에 무료로 받는 기본 충전 한도를 설정하거나 전체 회원에게 일괄 지급/차감할 수 있습니다.
+          </p>
+        </div>
+      </div>
+      <div class="credit-bar-right">
+        <div class="daily-limit-input-box">
+          <label for="dailyCreditLimitInput">매일 기본 한도:</label>
+          <input type="number" id="dailyCreditLimitInput" min="1" max="1000" value="20">
+          <button id="btnSaveDailyLimit" class="btn-secondary"><i class="fa-solid fa-floppy-disk"></i> 저장</button>
+        </div>
+        <button id="btnOpenBatchCreditModal" class="btn-primary" style="background: linear-gradient(135deg, #f59e0b, #d97706); border:none;">
+          <i class="fa-solid fa-bolt"></i> 전체 회원 크레딧 일괄 조절
+        </button>
+      </div>
+    </section>
+
+    <!-- AI 실시간 엔진 연동 관리 (기본 Flash / PRO Pro 모델) -->
+    <section class="admin-content-card ai-engine-settings-card">
+      <div class="content-header" style="margin-bottom: 14px;">
+        <div class="header-titles">
+          <h3><i class="fa-solid fa-wand-magic-sparkles" style="color: #7c3aed;"></i> AI 실시간 엔진 연동 관리 (기본 AI & PRO 엔진)</h3>
+          <p>Google AI Studio의 Gemini API 키를 등록하여 일반 회원은 <strong>gemini-1.5-flash</strong>, 관리자 승인 회원은 <strong>gemini-1.5-pro</strong> 실시간 고지능 AI로 즉시 연결합니다.</p>
+        </div>
+        <div class="header-actions">
+          <span class="engine-status-badge" id="adminEngineStatusBadge">
+            <span class="status-dot"></span> <span id="adminEngineStatusText">연동 상태 확인 중...</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="ai-key-config-row">
+        <div class="ai-key-input-box">
+          <label for="adminApiKeyInput">Gemini API Key (Google AI Studio Key):</label>
+          <div class="ai-key-input-wrapper">
+            <input type="password" id="adminApiKeyInput" placeholder="AIza... 로 시작하는 API 키를 입력하세요" autocomplete="off">
+            <button type="button" id="toggleAdminApiKeyVisible" class="btn-secondary" title="키 표시/숨김"><i class="fa-regular fa-eye"></i></button>
+          </div>
+        </div>
+        <div class="ai-key-actions">
+          <button id="btnSaveAdminApiKey" class="btn-primary" style="background: linear-gradient(135deg, #7c3aed, #6366f1); border:none;">
+            <i class="fa-solid fa-floppy-disk"></i> API 키 저장
+          </button>
+          <button id="btnTestAdminApiKey" class="btn-secondary">
+            <i class="fa-solid fa-vial-circle-check"></i> 연동 테스트
+          </button>
+        </div>
+      </div>
+
+      <div class="engine-model-info-grid">
+        <div class="engine-model-chip">
+          <span class="chip-label"><i class="fa-solid fa-bolt"></i> 일반 AI 연동 모델</span>
+          <strong class="chip-model">gemini-3.8-flash</strong>
+          <span class="chip-desc">일반 등록 회원 기본 제공 초고속 응답 모델</span>
+        </div>
+        <div class="engine-model-chip pro">
+          <span class="chip-label"><i class="fa-solid fa-crown"></i> PRO 엔진 연동 모델</span>
+          <strong class="chip-model">gemini-3.1-pro-preview (최상위 PRO)</strong>
+          <span class="chip-desc">관리자 웹에서 'PRO 사용' 승인된 계정 전용 최고 지능 모델</span>
+        </div>
+      </div>
+      <div id="adminApiKeyAlert" class="admin-api-alert" style="display: none;"></div>
+    </section>
+
+    <!-- 홈 화면 광고/배너 관리 섹션 -->
+    <section class="admin-content-card ads-manager-card">
+      <div class="content-header" style="margin-bottom: 16px;">
+        <div class="header-titles">
+          <h3><i class="fa-solid fa-rectangle-ad" style="color: #ec4899;"></i> nunu 홈 화면 광고 및 배너 관리</h3>
+          <p>
+            nunu 홈 화면에 노출할 광고를 등록하고 관리합니다. (홈 화면에는 활성화된 광고 중 <strong>최대 2개</strong>가 노출되며, 3개 이상 등록 시 <strong>랜덤 2개</strong>가 실시간 표출됩니다.)
+          </p>
+        </div>
+        <div class="header-actions">
+          <!-- 전체 광고 ON/OFF 스위치 -->
+          <div class="global-switch-wrap">
+            <span class="global-switch-label">전체 광고 표출:</span>
+            <label class="toggle-switch">
+              <input type="checkbox" id="globalAdsToggle">
+              <span class="toggle-slider"></span>
+            </label>
+            <span id="globalAdsStatusText" class="global-switch-status">ON</span>
+          </div>
+          <button id="openAddAdModalBtn" class="btn-primary" style="background: linear-gradient(135deg, #ec4899, #db2777); border: none;">
+            <i class="fa-solid fa-plus"></i> 신규 광고 등록
+          </button>
+        </div>
+      </div>
+
+      <!-- 광고 목록 테이블 -->
+      <div class="table-responsive">
+        <table class="user-table ads-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;">ID</th>
+              <th style="width: 140px;">미디어 미리보기</th>
+              <th>광고 제목 및 설명</th>
+              <th style="width: 200px;">이동 링크 (URL)</th>
+              <th style="width: 110px; text-align: center;">개별 ON / OFF</th>
+              <th style="width: 120px;">등록 일시</th>
+              <th style="width: 90px; text-align: center;">관리</th>
+            </tr>
+          </thead>
+          <tbody id="adsTableBody">
+            <!-- JS 동적 생성 -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 빈 목록 안내 -->
+      <div class="empty-state" id="adsEmptyState" style="display: none;">
+        <i class="fa-regular fa-rectangle-ad"></i>
+        <h4>등록된 광고가 없습니다</h4>
+        <p>상단의 '신규 광고 등록' 버튼을 눌러 홈 화면에 표시할 광고를 추가해보세요.</p>
+      </div>
+    </section>
+
+    <!-- 탈로스(Talos) 공식 시험지 및 정답 관리 섹션 -->
+    <section class="admin-content-card talos-tests-card" id="talosTestsSection">
+      <div class="content-header" style="margin-bottom: 16px;">
+        <div class="header-titles">
+          <h3><i class="fa-solid fa-graduation-cap" style="color: #6366f1;"></i> 탈로스(Talos) 공식 시험지 및 정답 관리</h3>
+          <p>
+            탈로스(내 회사)에서 제공하는 공식 시험지와 문항별 정답·해설을 등록하고 관리합니다. (등록된 시험지만 AI 스캐너 <strong>[시험] 모드</strong>에서 채점되며, 미등록 시험지는 채점이 제한됩니다.)
+          </p>
+        </div>
+        <div class="header-actions">
+          <button id="openAddTalosTestModalBtn" class="btn-primary" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none;">
+            <i class="fa-solid fa-plus"></i> 신규 탈로스 시험지 등록
+          </button>
+        </div>
+      </div>
+
+      <!-- 시험지 목록 테이블 -->
+      <div class="table-responsive">
+        <table class="user-table talos-tests-table">
+          <thead>
+            <tr>
+              <th style="width: 140px;">시험 코드</th>
+              <th>시험지 명칭</th>
+              <th style="width: 110px; text-align: center;">인증코드</th>
+              <th style="width: 90px;">과목</th>
+              <th style="width: 100px;">대상 학년</th>
+              <th style="width: 80px; text-align: center;">문항 수</th>
+              <th style="width: 80px; text-align: center;">총 배점</th>
+              <th style="width: 90px; text-align: center;">채점 활성</th>
+              <th style="width: 110px;">등록 일시</th>
+              <th style="width: 110px; text-align: center;">관리</th>
+            </tr>
+          </thead>
+          <tbody id="talosTestsTableBody">
+            <!-- JS 동적 생성 -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 빈 목록 안내 -->
+      <div class="empty-state" id="talosEmptyState" style="display: none;">
+        <i class="fa-solid fa-graduation-cap"></i>
+        <h4>등록된 탈로스 시험지가 없습니다</h4>
+        <p>상단의 '신규 탈로스 시험지 등록' 버튼을 눌러 시험 문제와 정답을 추가해보세요.</p>
+      </div>
+    </section>
+
+    <!-- 회원 계정 관리 메인 테이블 섹션 -->
+    <section class="admin-content-card">
+      <div class="content-header">
+        <div class="header-titles">
+          <h3><i class="fa-solid fa-address-book" style="color: #4f46e5;"></i> 사용자 계정 및 AI 권한/크레딧 관리</h3>
+          <p>nunu 포털 회원의 계정 정보, 비밀번호, nunu AI PRO 모델 권한 및 잔여 크레딧을 관리할 수 있습니다.</p>
+        </div>
+        <div class="header-actions">
+          <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="userSearchInput" placeholder="아이디, 이름, 이메일 검색...">
+          </div>
+          <button id="toggleAllPwBtn" class="btn-secondary">
+            <i class="fa-solid fa-eye"></i> 비밀번호 전체 표시
+          </button>
+          <button id="openAddUserModalBtn" class="btn-primary">
+            <i class="fa-solid fa-user-plus"></i> 신규 회원 직접 등록
+          </button>
+        </div>
+      </div>
+
+      <!-- 회원 테이블 -->
+      <div class="table-responsive">
+        <table class="user-table">
+          <thead>
+            <tr>
+              <th style="width: 50px;">번호</th>
+              <th style="width: 120px;">아이디 (ID)</th>
+              <th style="width: 120px;">이름 / 닉네임</th>
+              <th>이메일 주소</th>
+              <th style="width: 170px;">비밀번호 (PW)</th>
+              <th style="width: 130px; text-align: center;">AI 권한 등급</th>
+              <th style="width: 140px; text-align: center;">보유 크레딧</th>
+              <th style="width: 130px; text-align: center;">개인 광고 ON/OFF</th>
+              <th style="width: 130px;">가입 일시</th>
+              <th style="width: 120px; text-align: center;">계정 관리</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody">
+            <!-- JS 동적 생성 -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 빈 목록 안내 -->
+      <div class="empty-state" id="emptyState" style="display: none;">
+        <i class="fa-regular fa-folder-open"></i>
+        <h4>등록된 회원이 없습니다</h4>
+        <p>포털에서 회원가입을 진행하거나 상단의 '신규 회원 직접 등록' 버튼을 이용하세요.</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- 회원 직접 등록 모달 -->
+  <div class="admin-modal" id="addUserModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h4><i class="fa-solid fa-user-plus" style="color: #4f46e5;"></i> 관리자 전용 - 신규 회원 생성</h4>
+        <button class="close-btn" id="closeAddUserModalBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form class="modal-body" id="addUserForm" onsubmit="return false;">
+        <div class="form-group">
+          <label>아이디 (ID)</label>
+          <input type="text" id="newUserId" placeholder="영문/숫자 3자 이상" required>
+        </div>
+        <div class="form-group">
+          <label>이름 / 닉네임</label>
+          <input type="text" id="newUserName" placeholder="사용자 이름 입력" required>
+        </div>
+        <div class="form-group">
+          <label>이메일</label>
+          <input type="email" id="newUserEmail" placeholder="user@nunu.com" required>
+        </div>
+        <div class="form-group">
+          <label>비밀번호 (Password)</label>
+          <input type="text" id="newUserPw" placeholder="비밀번호 입력" required>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="cancelAddUserBtn">취소</button>
+          <button type="submit" class="btn-primary" id="saveNewUserBtn">회원 계정 등록</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 비밀번호 변경 모달 -->
+  <div class="admin-modal" id="editPwModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h4><i class="fa-solid fa-key" style="color: #4f46e5;"></i> 비밀번호 수정</h4>
+        <button class="close-btn" id="closeEditPwModalBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form class="modal-body" onsubmit="return false;">
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">
+          대상 계정: <strong id="targetUserSpan" style="color: #0f172a;"></strong>
+        </p>
+        <div class="form-group">
+          <label>새 비밀번호 입력</label>
+          <input type="text" id="editPwInput" placeholder="변경할 새 비밀번호">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="cancelEditPwBtn">취소</button>
+          <button type="submit" class="btn-primary" id="saveEditPwBtn">비밀번호 변경 적용</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 개별 회원 크레딧 지급/차감 모달 -->
+  <div class="admin-modal" id="singleCreditModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h4><i class="fa-solid fa-coins" style="color: #f59e0b;"></i> 회원 크레딧 지급 / 차감</h4>
+        <button class="close-btn" id="closeSingleCreditModalBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form class="modal-body" onsubmit="return false;">
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 14px;">
+          <div style="font-size: 13px; color: #64748b; margin-bottom: 4px;">대상 회원: <strong id="creditTargetUserText" style="color: #0f172a;">-</strong></div>
+          <div style="font-size: 13px; color: #64748b;">현재 잔여 크레딧: <strong id="creditTargetCurrentVal" style="color: #d97706; font-size: 16px;">0</strong>개</div>
+        </div>
+        <div class="form-group">
+          <label>지급 / 차감할 크레딧 수량</label>
+          <input type="number" id="singleCreditAmountInput" placeholder="수량 입력 (예: 10, 50)" min="1" value="10">
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 16px;">
+          <button type="button" class="btn-primary" id="btnApplyGrantCredit" style="flex: 1; background: #10b981; border:none;">
+            <i class="fa-solid fa-plus"></i> 크레딧 지급 (+)
+          </button>
+          <button type="button" class="btn-primary" id="btnApplyDeductCredit" style="flex: 1; background: #ef4444; border:none;">
+            <i class="fa-solid fa-minus"></i> 크레딧 차감 (-)
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 전체 회원 크레딧 일괄 조절 모달 -->
+  <div class="admin-modal" id="batchCreditModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h4><i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> 전체 회원 크레딧 일괄 조절</h4>
+        <button class="close-btn" id="closeBatchCreditModalBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form class="modal-body" onsubmit="return false;">
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">
+          데이터베이스에 등록된 <strong id="batchUsersCountSpan" style="color: #4f46e5;">0명</strong>의 모든 회원에게 크레딧을 한 번에 지급하거나 차감합니다.
+        </p>
+        <div class="form-group">
+          <label>일괄 적용할 크레딧 수량</label>
+          <input type="number" id="batchCreditAmountInput" placeholder="수량 입력 (예: 20)" min="1" value="20">
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 16px;">
+          <button type="button" class="btn-primary" id="btnApplyBatchGrant" style="flex: 1; background: #10b981; border:none;">
+            <i class="fa-solid fa-plus"></i> 전 회원 일괄 지급 (+)
+          </button>
+          <button type="button" class="btn-primary" id="btnApplyBatchDeduct" style="flex: 1; background: #ef4444; border:none;">
+            <i class="fa-solid fa-minus"></i> 전 회원 일괄 차감 (-)
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 신규 광고 등록 모달 -->
+  <div class="admin-modal" id="addAdModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h4><i class="fa-solid fa-rectangle-ad" style="color: #ec4899;"></i> nunu 홈 화면 신규 광고 등록</h4>
+        <button class="close-btn" id="closeAddAdModalBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form class="modal-body" id="addAdForm" onsubmit="return false;">
+        <div class="form-group">
+          <label>광고 제목 (필수)</label>
+          <input type="text" id="newAdTitle" placeholder="예: [특가] 북웨이브 무제한 구독권 50% 할인" required>
+        </div>
+        <div class="form-group">
+          <label>광고 부연 설명 (선택)</label>
+          <input type="text" id="newAdDesc" placeholder="예: 첫 달 1,000원으로 즐기는 최고의 독서 경험">
+        </div>
+        <div class="form-group">
+          <label>클릭 시 이동할 링크 URL (선택)</label>
+          <input type="url" id="newAdLinkUrl" placeholder="https://... (입력하지 않으면 단순 배너로 표출)">
+        </div>
+        <div class="form-group">
+          <label>미디어 첨부 종류 (선택)</label>
+          <select id="newAdMediaType" class="form-select" style="width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 14px; background: #fff;">
+            <option value="none">첨부 없음 (텍스트 배너형)</option>
+            <option value="image">🖼️ 사진/이미지 파일 첨부</option>
+            <option value="video">🎬 동영상 파일 첨부 (MP4/WebM)</option>
+          </select>
+        </div>
+        <div class="form-group" id="adMediaFileGroup" style="display: none;">
+          <label id="adMediaFileLabel">미디어 파일 선택</label>
+          <div class="file-upload-box" style="border: 2px dashed #cbd5e1; border-radius: 10px; padding: 16px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s ease;">
+            <input type="file" id="newAdMediaFile" style="display: none;">
+            <div id="fileUploadPrompt">
+              <i class="fa-solid fa-cloud-arrow-up" style="font-size: 28px; color: #ec4899; margin-bottom: 8px;"></i>
+              <div style="font-size: 13.5px; font-weight: 700; color: #334155;" id="fileUploadPromptText">내 컴퓨터에서 파일 선택하기</div>
+              <span style="font-size: 12px; color: #64748b; margin-top: 4px; display: block;" id="fileUploadHint">사진(JPG, PNG, GIF, WebP) 또는 동영상(MP4, WebM) 파일</span>
+            </div>
+            <div id="filePreviewBox" style="display: none; margin-top: 10px;">
+              <div id="filePreviewContent" style="max-height: 180px; overflow: hidden; border-radius: 8px; margin-bottom: 8px;"></div>
+              <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span id="selectedFileName" style="font-size: 12.5px; font-weight: 700; color: #475569;"></span>
+                <button type="button" id="btnRemoveSelectedFile" class="btn-subtle-action" style="color: #ef4444; font-size: 12px; padding: 2px 8px;"><i class="fa-solid fa-trash"></i> 삭제</button>
+              </div>
+            </div>
+          </div>
+          <!-- 외부 웹 URL 입력 옵션 토글 -->
+          <details style="margin-top: 10px; font-size: 12px; color: #64748b;">
+            <summary style="cursor: pointer; font-weight: 600;">또는 외부 웹 링크(URL)로 직접 입력하기</summary>
+            <input type="url" id="newAdMediaUrl" placeholder="https://example.com/banner.jpg" style="margin-top: 6px; width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 12.5px;">
+          </details>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="cancelAddAdBtn">취소</button>
+          <button type="submit" class="btn-primary" id="saveNewAdBtn" style="background: linear-gradient(135deg, #ec4899, #db2777); border: none;">
+            <i class="fa-solid fa-check"></i> 광고 등록 완료
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 탈로스 시험지 등록/수정 모달 -->
+  <div class="admin-modal" id="talosTestModal" style="display: none;">
+    <div class="modal-card modal-large" style="max-width: 820px; width: 95%;">
+      <div class="modal-head">
+        <h4><i class="fa-solid fa-graduation-cap" style="color: #6366f1;"></i> <span id="talosModalTitle">탈로스(Talos) 공식 시험지 및 정답 등록</span></h4>
+        <button class="close-btn" id="closeTalosModalBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form class="modal-body" id="talosTestForm" onsubmit="return false;" style="max-height: 75vh; overflow-y: auto;">
+        <input type="hidden" id="talosEditTestId" value="">
+        
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 14px; margin-bottom: 12px;">
+          <div class="form-group">
+            <label>시험 고유 코드 <small style="color: #6366f1;">(예: TALOS-KOR-01)</small></label>
+            <input type="text" id="talosTestCodeInput" placeholder="TALOS-..." required style="text-transform: uppercase;">
+          </div>
+          <div class="form-group">
+            <label>시험지 명칭</label>
+            <input type="text" id="talosTestTitleInput" placeholder="예: 탈로스 초등 국어 단원평가 (1회)" required>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; margin-bottom: 12px;">
+          <div class="form-group">
+            <label>과목</label>
+            <input type="text" id="talosTestSubjectInput" placeholder="예: 국어, 영어, 수학">
+          </div>
+          <div class="form-group">
+            <label>대상 학년</label>
+            <input type="text" id="talosTestGradeInput" placeholder="예: 초등 3~4학년">
+          </div>
+          <div class="form-group">
+            <label>총 배점 (만점)</label>
+            <input type="number" id="talosTestPointsInput" value="100" min="10" max="1000">
+          </div>
+          <div class="form-group">
+            <label><i class="fa-solid fa-key" style="color: #f59e0b;"></i> 시험지 인증코드 <small style="color: #64748b;">(필수)</small></label>
+            <input type="text" id="talosTestAuthCodeInput" placeholder="예: 7788 또는 TALOS2026" required style="font-weight: 700; color: #1e293b; background: #fffbeb; border-color: #fde68a;">
+          </div>
+        </div>
+
+
+        <!-- 문항별 문제 & 정답 & 배점 & 해설 동적 편집 리스트 -->
+        <div class="talos-questions-editor-wrap" style="margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+            <label style="font-weight: 700; font-size: 14px;"><i class="fa-solid fa-list-check" style="color: #6366f1;"></i> 문항별 문제 & 공식 정답표 설정</label>
+            <button type="button" id="btnAddTalosQuestionBtn" class="btn-secondary" style="font-size: 12px; padding: 6px 14px;">
+              <i class="fa-solid fa-plus"></i> 문항 추가
+            </button>
+          </div>
+
+          <div id="talosQuestionsContainer" style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- JS 동적 생성 -->
+          </div>
+        </div>
+
+        <div class="modal-footer" style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn-secondary" id="cancelTalosModalBtn">취소</button>
+          <button type="button" class="btn-primary" id="saveTalosTestBtn" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none;">
+            <i class="fa-solid fa-floppy-disk"></i> 탈로스 시험지 저장
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 관리자 보안 인증 게이트 오버레이 (Master Passcode Gate) -->
+  <div id="adminAuthOverlay" class="admin-lock-overlay" style="display: flex;">
+    <div class="admin-lock-card">
+      <div class="lock-shield-badge">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+      <h2>nunu 관리자 콘솔 인증</h2>
+      <p>비인가자의 접근을 차단하기 위해 관리자 마스터 비밀번호 인증이 필요합니다.</p>
+      
+      <form id="adminAuthForm" onsubmit="return false;" class="lock-form">
+        <div class="lock-input-wrap">
+          <i class="fa-solid fa-key lock-key-icon"></i>
+          <input type="password" id="adminPasscodeInput" placeholder="마스터 비밀번호 입력 (기본: nunu2026!)" autocomplete="current-password">
+          <button type="button" class="btn-lock-eye" id="toggleLockEye" title="비밀번호 표시/숨김"><i class="fa-regular fa-eye"></i></button>
+        </div>
+        <div id="adminAuthError" class="lock-error-msg" style="display: none;"></div>
+        <button type="submit" id="btnAdminAuthLogin" class="btn-primary" style="padding: 13px; font-size: 15px; font-weight: 700; width: 100%; border-radius: 10px; cursor: pointer; background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; border: none; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);">
+          <i class="fa-solid fa-unlock"></i> 관리자 인증 및 대시보드 입장
+        </button>
+      </form>
+      <div style="margin-top: 16px; font-size: 12px; color: #94a3b8;">
+        일반 사용자의 접근은 엄격히 차단되며 보안 로그에 기록됩니다.
+      </div>
+    </div>
+  </div>
+
+  <!-- 연동 서버 설정 모달 -->
+  <div class="custom-modal" id="serverConfigModal" style="display: none;">
+    <div class="modal-box" style="max-width: 480px;">
+      <div class="modal-title-bar">
+        <h4><i class="fa-solid fa-network-wired" style="color: var(--primary-color);"></i> 연동 서버 (User Portal) 설정</h4>
+        <button class="modal-close-icon" id="closeServerConfigModalBtn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-form">
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">
+          관리자웹이 비상정지 및 회원·광고 데이터를 제어할 사용자웹(User Portal) 백엔드 주소를 지정합니다.
+        </p>
+        <div class="form-group">
+          <label for="serverUrlInput">백엔드 서버 URL</label>
+          <input type="text" id="serverUrlInput" placeholder="http://localhost:8080 또는 https://tunnel.trycloudflare.com">
+        </div>
+        <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+          <button type="button" class="btn-subtle-action" id="btnSetLocalServer" style="font-size: 12px; padding: 6px 10px; cursor: pointer;">로컬 (8080)</button>
+          <button type="button" class="btn-subtle-action" id="btnSetTunnelServer" style="font-size: 12px; padding: 6px 10px; cursor: pointer;">Cloudflare 터널</button>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="btnSaveServerUrl" class="btn-primary" style="width: 100%;">연동 서버 저장 및 즉시 동기화</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="admin-api-bridge.js"></script>
+  <script src="admin.js?v=20261022_final"></script>
+</body>
+</html>
