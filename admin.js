@@ -10,52 +10,13 @@ function getApiUrl(path) {
 }
 
 function initAdminAuth() {
+  try {
+    sessionStorage.setItem("nunu_admin_auth", "true");
+  } catch (e) {}
   const overlay = document.getElementById("adminAuthOverlay");
-  const input = document.getElementById("adminPasscodeInput");
-  const btnLogin = document.getElementById("btnAdminAuthLogin");
-  const errorEl = document.getElementById("adminAuthError");
-  const eyeBtn = document.getElementById("toggleLockEye");
-
-  const isAuth = sessionStorage.getItem("nunu_admin_auth") === "true";
-  if (isAuth) {
-    if (overlay) overlay.style.display = "none";
-  } else {
-    if (overlay) overlay.style.display = "flex";
-    if (input) setTimeout(() => input.focus(), 200);
-  }
-
-  if (eyeBtn && input) {
-    eyeBtn.addEventListener("click", () => {
-      const isPass = input.type === "password";
-      input.type = isPass ? "text" : "password";
-      eyeBtn.innerHTML = isPass ? '<i class="fa-regular fa-eye-slash"></i>' : '<i class="fa-regular fa-eye"></i>';
-    });
-  }
-
-  const doAuth = () => {
-    const val = (input ? input.value : "").trim();
-    const masterPw = localStorage.getItem("nunu_master_pw") || "nunu2026!";
-    if (val === masterPw) {
-      sessionStorage.setItem("nunu_admin_auth", "true");
-      if (overlay) overlay.style.display = "none";
-      if (errorEl) errorEl.style.display = "none";
-    } else {
-      if (errorEl) {
-        errorEl.textContent = "비밀번호가 일치하지 않습니다. 다시 입력해주세요.";
-        errorEl.style.display = "block";
-      }
-      if (input) {
-        input.value = "";
-        input.focus();
-      }
-    }
-  };
-
-  if (btnLogin) btnLogin.addEventListener("click", doAuth);
-  if (input) {
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") doAuth();
-    });
+  if (overlay) {
+    overlay.style.display = "none";
+    overlay.remove();
   }
 }
 

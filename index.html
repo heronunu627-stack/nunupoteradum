@@ -576,31 +576,7 @@
     </div>
   </div>
 
-  <!-- 관리자 보안 인증 게이트 오버레이 (Master Passcode Gate) -->
-  <div id="adminAuthOverlay" class="admin-lock-overlay" style="display: flex;">
-    <div class="admin-lock-card">
-      <div class="lock-shield-badge">
-        <i class="fa-solid fa-shield-halved"></i>
-      </div>
-      <h2>nunu 관리자 콘솔 인증</h2>
-      <p>비인가자의 접근을 차단하기 위해 관리자 마스터 비밀번호 인증이 필요합니다.</p>
-      
-      <form id="adminAuthForm" onsubmit="return false;" class="lock-form">
-        <div class="lock-input-wrap">
-          <i class="fa-solid fa-key lock-key-icon"></i>
-          <input type="password" id="adminPasscodeInput" placeholder="마스터 비밀번호 입력 (기본: nunu2026!)" autocomplete="current-password">
-          <button type="button" class="btn-lock-eye" id="toggleLockEye" title="비밀번호 표시/숨김"><i class="fa-regular fa-eye"></i></button>
-        </div>
-        <div id="adminAuthError" class="lock-error-msg" style="display: none;"></div>
-        <button type="submit" id="btnAdminAuthLogin" class="btn-primary" style="padding: 13px; font-size: 15px; font-weight: 700; width: 100%; border-radius: 10px; cursor: pointer; background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; border: none; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);">
-          <i class="fa-solid fa-unlock"></i> 관리자 인증 및 대시보드 입장
-        </button>
-      </form>
-      <div style="margin-top: 16px; font-size: 12px; color: #94a3b8;">
-        일반 사용자의 접근은 엄격히 차단되며 보안 로그에 기록됩니다.
-      </div>
-    </div>
-  </div>
+  <!-- 관리자 보안 비밀번호 잠금 해제 (사용자 요청: 인증 없이 즉시 대시보드 직행) -->
 
   <!-- 연동 서버 설정 모달 -->
   <div class="custom-modal" id="serverConfigModal" style="display: none;">
